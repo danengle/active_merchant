@@ -253,7 +253,10 @@ module ActiveMerchant #:nodoc:
           xml.tag! 'country', CGI.escape(addr[:country] ) if addr[:country]  && !addr[:country].empty?
           xml.tag! 'zip'    , CGI.escape(addr[:zip]     ) # this one's actually required
           xml.tag! 'phone'  , CGI.escape(addr[:phone]   ) if addr[:phone]    && !addr[:phone].empty?
-          #xml.tag! 'email'        , ''
+          xml.tag! 'email'  , CGI.escape(addr[:email]   ) if addr[:email]    && !addr[:email].empty?
+        end
+        if opts[:customer_ip] && !opts[:customer_ip].empty?
+          xml.tag! 'customerIP', CGI.escape(opts[:customer_ip])
         end
       end
 
