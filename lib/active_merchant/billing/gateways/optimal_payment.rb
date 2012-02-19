@@ -49,11 +49,20 @@ module ActiveMerchant #:nodoc:
         commit('ccSettlement', money, options)
       end
 
+      # this was returning true from the super call in production
+      # mode. Could only get things working as expected if I explicitly
+      # passed in :test => false in intialization and also
+      # had mode set to :production
       def test?
-        super || @options[:test]
+        if @options[:test]
+          return @options[:test]
+        else
+          super
+        end
+
       end
 
-    private
+      private
 
       def parse_card_or_auth(card_or_auth, options)
         if card_or_auth.respond_to?(:number)
@@ -73,30 +82,30 @@ module ActiveMerchant #:nodoc:
         post[:order_id] ||= 'order_id'
 
         xml = case action
-        when 'ccAuthorize', 'ccPurchase', 'ccVerification'
-          cc_auth_request(money, post)
-        when 'ccCredit', 'ccSettlement'
-          cc_post_auth_request(money, post)
-        when 'ccStoredDataAuthorize', 'ccStoredDataPurchase'
-          cc_stored_data_request(money, post)
-        when 'ccAuthorizeReversal'
-          cc_auth_reversal_request(post)
-        #when 'ccCancelSettle', 'ccCancelCredit', 'ccCancelPayment'
-        #  cc_cancel_request(money, post)
-        #when 'ccPayment'
-        #  cc_payment_request(money, post)
-        #when 'ccAuthenticate'
-        #  cc_authenticate_request(money, post)
-        else
-          raise 'Unknown Action'
-        end
+              when 'ccAuthorize', 'ccPurchase', 'ccVerification'
+                cc_auth_request(money, post)
+              when 'ccCredit', 'ccSettlement'
+                cc_post_auth_request(money, post)
+              when 'ccStoredDataAuthorize', 'ccStoredDataPurchase'
+                cc_stored_data_request(money, post)
+              when 'ccAuthorizeReversal'
+                cc_auth_reversal_request(post)
+                #when 'ccCancelSettle', 'ccCancelCredit', 'ccCancelPayment'
+                #  cc_cancel_request(money, post)
+                #when 'ccPayment'
+                #  cc_payment_request(money, post)
+                #when 'ccAuthenticate'
+                #  cc_authenticate_request(money, post)
+              else
+                raise 'Unknown Action'
+              end
         txnRequest = URI.encode(xml)
         response = parse(ssl_post(test? ? TEST_URL : LIVE_URL, "txnMode=#{action}&txnRequest=#{txnRequest}"))
 
         Response.new(successful?(response), message_from(response), hash_from_xml(response),
-          :test          => test?,
-          :authorization => authorization_from(response)
-        )
+                     :test          => test?,
+                     :authorization => authorization_from(response)
+                    )
       end
 
       def successful?(response)
@@ -122,10 +131,10 @@ module ActiveMerchant #:nodoc:
            decision code description
            actionCode avsResponse cvdResponse
            txnTime duplicateFound
-        ).each do |tag|
+          ).each do |tag|
           node = REXML::XPath.first(response, "//#{tag}")
           hsh[tag] = node.text if node
-        end
+          end
         REXML::XPath.each(response, '//detail') do |detail|
           next unless detail.is_a?(REXML::Element)
           tag = detail.elements['tag'].text
